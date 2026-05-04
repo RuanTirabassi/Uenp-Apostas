@@ -7,22 +7,26 @@ Esta é uma API simples em TypeScript para gerenciar apostadores em uma casa de 
 Para clonar e executar o projeto na sua máquina, siga os passos abaixo.
 
 ### Pré-requisitos
+
 - Ter o [Node.js](https://nodejs.org/) instalado na máquina.
 - Ter o [Git](https://git-scm.com/) instalado.
 
 ### Passo a passo
 
 1. **Clone o repositório:**
+
    ```bash
    git clone <URL_DO_SEU_REPOSITORIO>
    ```
 
 2. **Acesse a pasta do projeto:**
+
    ```bash
    cd UENP-apostas
    ```
 
 3. **Instale as dependências:**
+
    ```bash
    npm install
    ```
@@ -76,13 +80,13 @@ Abaixo estão os endpoints disponíveis, seus métodos HTTP, rotas, descrições
     "id": 1,
     "nome": "Carlos",
     "idade": 28,
-    "chave_pix": "carlos@email.com"
+    "chavePix": "carlos@email.com"
   },
   {
     "id": 2,
     "nome": "Ana",
     "idade": 24,
-    "chave_pix": "11999999999"
+    "chavePix": "11999999999"
   }
 ]
 ```
@@ -102,7 +106,7 @@ Abaixo estão os endpoints disponíveis, seus métodos HTTP, rotas, descrições
   "id": 1,
   "nome": "Carlos",
   "idade": 28,
-  "chave_pix": "carlos@email.com"
+  "chavePix": "carlos@email.com"
 }
 ```
 
