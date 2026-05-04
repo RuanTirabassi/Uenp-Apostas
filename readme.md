@@ -16,7 +16,7 @@ Para clonar e executar o projeto na sua máquina, siga os passos abaixo.
 1. **Clone o repositório:**
 
    ```bash
-   git clone <URL_DO_SEU_REPOSITORIO>
+   git clone https://github.com/RuanTirabassi/Uenp-Apostas
    ```
 
 2. **Acesse a pasta do projeto:**
