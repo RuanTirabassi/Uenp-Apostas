@@ -4,15 +4,15 @@ import os from "os";
 import https from "https";
 import fs from "fs";
 import path from "path";
-import selfsigned from "selfsigned";
+
 import dotenv from "dotenv";
 import cors from "cors";
 
 // Importa as rotas da aplicação
 import router from "./routes";
 
-// Importa o arquivo do banco para garantir que a conexão e a criação da tabela aconteçam ao iniciar
-import "./database";
+// Importa a função de inicialização do banco
+import { initDatabase } from "./database";
 
 // Carrega as variáveis de ambiente do .env
 dotenv.config();
@@ -36,6 +36,9 @@ app.use(express.json());
   Registra as rotas definidas no arquivo routes.ts.
 */
 app.use(router);
+
+// Inicializa o banco de dados (Cria tabelas se necessário)
+initDatabase();
 
 // Pega a porta do .env ou usa 3000 por padrão
 const PORT = parseInt(process.env.PORT || "3000", 10);
@@ -71,6 +74,7 @@ if (!process.env.VERCEL) {
       console.log("Gerando certificados SSL autoassinados para HTTPS...");
       const attrs = [{ name: "commonName", value: "localhost" }];
       
+      const selfsigned = require("selfsigned");
       const pems = await (selfsigned as any).generate(attrs, { days: 365 });
       
       privateKey = pems.private;

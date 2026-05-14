@@ -1,38 +1,55 @@
-// Importa a biblioteca sqlite3 para permitir a conexão com o banco SQLite
+import { sql } from "@vercel/postgres";
 import sqlite3 from "sqlite3";
 import path from "path";
 
-// Ativa mensagens mais detalhadas de erro e debug do SQLite
-const sqlite = sqlite3.verbose();
+// Detecta se estamos na Vercel
+const isVercel = process.env.VERCEL === "1" || !!process.env.POSTGRES_URL;
 
 /*
-  Na Vercel, o sistema de arquivos é apenas leitura (Read-Only), exceto a pasta "/tmp".
-  Portanto, se estivermos na Vercel, criamos o SQLite dentro do /tmp.
-  Atenção: Na Vercel os dados no /tmp são efêmeros (são perdidos periodicamente), 
-  o que serve perfeitamente para testes de integração com a faculdade.
+  CONFIGURAÇÃO PARA VERCEL (POSTGRES)
 */
-const dbPath = process.env.VERCEL 
-  ? path.join("/tmp", "database.sqlite") 
-  : "./database.sqlite";
-
-export const db = new sqlite.Database(dbPath, (err) => {
-  if (err) {
-    console.error("Erro ao conectar no banco:", err.message);
+export async function initDatabase() {
+  if (isVercel) {
+    console.log("Utilizando Vercel Postgres");
+    try {
+      // Cria a tabela caso ela não exista (Sintaxe Postgres)
+      await sql`
+        CREATE TABLE IF NOT EXISTS apostadores (
+          id SERIAL PRIMARY KEY,
+          nome TEXT NOT NULL,
+          idade INTEGER NOT NULL,
+          chave_pix TEXT NOT NULL
+        );
+      `;
+      console.log("Tabela Postgres verificada/criada com sucesso.");
+    } catch (error) {
+      console.error("Erro ao inicializar Postgres:", error);
+    }
   } else {
-    console.log(`Banco conectado com sucesso em: ${dbPath}`);
+    /*
+      CONFIGURAÇÃO LOCAL (SQLITE)
+    */
+    console.log("Utilizando SQLite Local");
+    const dbPath = path.join(__dirname, "..", "database.sqlite");
+    const db = new sqlite3.Database(dbPath);
+    
+    return new Promise((resolve, reject) => {
+      db.serialize(() => {
+        db.run(`
+          CREATE TABLE IF NOT EXISTS apostadores (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nome TEXT NOT NULL,
+            idade INTEGER NOT NULL,
+            chave_pix TEXT NOT NULL
+          )
+        `, (err) => {
+          if (err) reject(err);
+          else resolve(db);
+        });
+      });
+    });
   }
-});
+}
 
-/*
-  O método serialize garante que os comandos SQL serão executados em ordem.
-*/
-db.serialize(() => {
-  db.run(`
-    CREATE TABLE IF NOT EXISTS apostadores (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      nome TEXT NOT NULL,
-      idade INTEGER NOT NULL,
-      chave_pix TEXT NOT NULL
-    )
-  `);
-});
+// Exportamos o objeto sql para ser usado nas rotas quando estivermos na Vercel
+export { sql };
