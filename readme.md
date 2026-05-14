@@ -1,117 +1,93 @@
-# API - Apostas
+# 🎲 API Apostadores (Technical Specs & API Reference)
 
-Esta é uma API simples em TypeScript para gerenciar apostadores em uma casa de apostas.
-
-## 🚀 Como rodar o projeto localmente
-
-Para clonar e executar o projeto na sua máquina, siga os passos abaixo.
-
-### Pré-requisitos
-
-- Ter o [Node.js](https://nodejs.org/) instalado na máquina.
-- Ter o [Git](https://git-scm.com/) instalado.
-
-### Passo a passo
-
-1. **Clone o repositório:**
-
-   ```bash
-   git clone https://github.com/RuanTirabassi/Uenp-Apostas
-   ```
-
-2. **Acesse a pasta do projeto:**
-
-   ```bash
-   cd UENP-apostas
-   ```
-
-3. **Instale as dependências:**
-
-   ```bash
-   npm install
-   ```
-
-4. **Inicie o servidor de desenvolvimento:**
-   ```bash
-   npm run dev
-   ```
-
-> 💡 **Nota:** O banco de dados SQLite (`database.sqlite`) será criado automaticamente na raiz do projeto e as tabelas serão geradas logo que você iniciar o servidor pela primeira vez.
+Esta é a documentação técnica da API de Apostadores. Ela detalha todos os endpoints, contratos de dados e requisitos de autenticação para integração.
 
 ---
 
-## 🌐 URL Base do Serviço
+## 🌐 URLs de Acesso e Ambientes
 
-A API roda localmente por padrão na porta 3000:
+Para utilizar a API, utilize a URL base correspondente ao ambiente desejado:
 
-```text
-http://localhost:3000
-```
+| Ambiente | URL Base | Protocolo |
+| :--- | :--- | :--- |
+| **Produção (Vercel)** | `https://api-apostadores-fight-azure.vercel.app/` | HTTPS (Nativo) |
+| **Desenvolvimento** | `https://localhost:3000` | HTTPS (Autoassinado) |
 
-### Acesso pela Rede Local (Wi-Fi)
-
-Para testar a API de outro computador que esteja na **mesma rede Wi-Fi**, utilize o IP da sua máquina no lugar de `localhost`.
-
-Ao iniciar o projeto, o terminal exibirá automaticamente o IP da rede em que a API está rodando, algo como:
-
-```text
-http://192.168.56.1:3000
-```
-
-_(Substitua o IP acima pelo que aparecer no seu terminal na hora de testar)_
+### 🔒 Observação sobre HTTPS Local
+Ao rodar a API localmente, ela gera automaticamente certificados SSL para simular um ambiente seguro. 
+- Em ferramentas como **Insomnia** ou **Postman**, você deve desativar a opção **"SSL Certificate Verification"** nas configurações para conseguir realizar as chamadas sem erro de certificado.
+- Em produção (Vercel), a validação de segurança é padrão e não requer configurações extras.
 
 ---
 
-## 📌 Endpoints da API
+## 🛠️ Stack Técnica
+- **Runtime:** Node.js + Express 5.
+- **Linguagem:** TypeScript.
+- **Banco de Dados:** Vercel Postgres (Neon).
+- **Segurança:** `jsonwebtoken` (Auth) e `crypto` (AES-256-CBC).
 
-Abaixo estão os endpoints disponíveis, seus métodos HTTP, rotas, descrições e exemplos detalhados de requisição e resposta.
+---
+
+## 🔐 Fluxo de Autenticação
+
+A API utiliza autenticação baseada em **Bearer Token (JWT)**. Todas as rotas, com exceção da rota de login, exigem a presença do token no cabeçalho das requisições.
+
+### 1. Obter Token (Login)
+- **Método:** `POST`
+- **Rota:** `/login`
+- **Request Body:**
+```json
+{
+  "usuario": "admin",
+  "senha": "123"
+}
+```
+- **Response (200 OK):**
+```json
+{
+  "auth": true,
+  "token": "eyJhbGciOiJIUzI1..."
+}
+```
+
+---
+
+## 📡 Referência de Endpoints
 
 ### 1. Listar todos os apostadores
-
-- **Método HTTP:** `GET`
+Retorna a lista completa de apostadores cadastrados.
+- **Método:** `GET`
 - **Rota:** `/apostadores`
-- **Descrição:** Retorna uma lista com todos os apostadores cadastrados no banco de dados.
-
-**Exemplo de Resposta (Sucesso - Status 200):**
-
+- **Headers:** `Authorization: Bearer <token>`
+- **Response (200 OK):**
 ```json
 [
   {
     "id": 1,
-    "nome": "Carlos",
+    "nome": "Carlos Silva",
     "idade": 28,
-    "chavePix": "carlos@email.com"
-  },
-  {
-    "id": 2,
-    "nome": "Ana",
-    "idade": 24,
-    "chavePix": "11999999999"
+    "chave_pix": "carlos@email.com"
   }
 ]
 ```
+*(Nota: O campo retornado é `chave_pix` em snake_case)*
 
 ---
 
-### 2. Buscar um apostador por ID
-
-- **Método HTTP:** `GET`
+### 2. Buscar apostador por ID
+- **Método:** `GET`
 - **Rota:** `/apostadores/:id`
-- **Descrição:** Busca e retorna os dados de um único apostador através do seu ID.
-
-**Exemplo de Resposta (Sucesso - Status 200):**
-
+- **Headers:** `Authorization: Bearer <token>`
+- **Response (200 OK):**
 ```json
 {
   "id": 1,
-  "nome": "Carlos",
+  "nome": "Carlos Silva",
   "idade": 28,
-  "chavePix": "carlos@email.com"
+  "chave_pix": "carlos@email.com"
 }
 ```
-
-**Exemplo de Resposta (Erro - Status 404):**
-
+- **Response (404 Not Found):**
 ```json
 {
   "mensagem": "Apostador não encontrado"
@@ -120,98 +96,66 @@ Abaixo estão os endpoints disponíveis, seus métodos HTTP, rotas, descrições
 
 ---
 
-### 3. Cadastrar um novo apostador
-
-- **Método HTTP:** `POST`
+### 3. Cadastrar novo apostador
+- **Método:** `POST`
 - **Rota:** `/apostadores`
-- **Descrição:** Cadastra um novo apostador no sistema.
-
-**Exemplo de Requisição (Body):**
-
+- **Headers:** `Authorization: Bearer <token>`
+- **Request Body:**
 ```json
 {
-  "nome": "Carlos",
-  "idade": 28,
-  "chavePix": "carlos@email.com"
+  "nome": "Ana Souza",
+  "idade": 24,
+  "chavePix": "11999999999"
 }
 ```
+*(Atenção: No envio, utilize `chavePix` em camelCase)*
 
-**Exemplo de Resposta (Sucesso - Status 201):**
-
+- **Response (210 Created):**
 ```json
 {
-  "id": 1,
-  "nome": "Carlos",
-  "idade": 28,
-  "chavePix": "carlos@email.com"
-}
-```
-
-**Exemplo de Resposta (Erro de Validação - Status 400):**
-
-```json
-{
-  "mensagem": "Os campos nome, idade e chavePix são obrigatórios"
+  "id": 2,
+  "nome": "Ana Souza",
+  "idade": 24,
+  "chavePix": "11999999999"
 }
 ```
 
 ---
 
-### 4. Atualizar um apostador existente
-
-- **Método HTTP:** `PUT`
+### 4. Atualizar apostador existente
+- **Método:** `PUT`
 - **Rota:** `/apostadores/:id`
-- **Descrição:** Atualiza os dados de um apostador existente. É necessário enviar todos os campos obrigatórios.
-
-**Exemplo de Requisição (Body):**
-
+- **Headers:** `Authorization: Bearer <token>`
+- **Request Body:**
 ```json
 {
-  "nome": "Carlos Silva",
-  "idade": 29,
-  "chavePix": "carlos.silva@email.com"
+  "nome": "Ana Souza Silva",
+  "idade": 25,
+  "chavePix": "ana.silva@email.com"
 }
 ```
-
-**Exemplo de Resposta (Sucesso - Status 200):**
-
-```json
-{
-  "id": 1,
-  "nome": "Carlos Silva",
-  "idade": 29,
-  "chavePix": "carlos.silva@email.com"
-}
-```
-
-**Exemplo de Resposta (Erro - Status 404):**
-
-```json
-{
-  "mensagem": "Apostador não encontrado"
-}
-```
+- **Response (200 OK):** Retorna o objeto atualizado.
 
 ---
 
-### 5. Remover um apostador
-
-- **Método HTTP:** `DELETE`
+### 5. Remover apostador
+- **Método:** `DELETE`
 - **Rota:** `/apostadores/:id`
-- **Descrição:** Remove um apostador do banco de dados pelo seu ID.
-
-**Exemplo de Resposta (Sucesso - Status 200):**
-
+- **Headers:** `Authorization: Bearer <token>`
+- **Response (200 OK):**
 ```json
 {
   "mensagem": "Apostador removido com sucesso"
 }
 ```
 
-**Exemplo de Resposta (Erro - Status 404):**
+---
 
-```json
-{
-  "mensagem": "Apostador não encontrado"
-}
-```
+## 💻 Instalação e Execução Local
+
+1.  Instale as dependências: `npm install`
+2.  Crie um arquivo `.env` com as chaves:
+    - `JWT_SECRET` (Senha do Token)
+    - `CRYPTO_SECRET` (Chave de 32 caracteres para AES)
+    - `POSTGRES_URL` (URL de conexão Neon/Postgres)
+3.  Inicie em modo de desenvolvimento: `npm run dev`
