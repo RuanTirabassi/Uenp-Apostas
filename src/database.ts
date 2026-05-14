@@ -1,31 +1,30 @@
 // Importa a biblioteca sqlite3 para permitir a conexão com o banco SQLite
 import sqlite3 from "sqlite3";
+import path from "path";
 
 // Ativa mensagens mais detalhadas de erro e debug do SQLite
 const sqlite = sqlite3.verbose();
 
 /*
-  Cria a conexão com o banco de dados local.
-  O arquivo "database.sqlite" será criado automaticamente na raiz do projeto
-  se ele ainda não existir.
+  Na Vercel, o sistema de arquivos é apenas leitura (Read-Only), exceto a pasta "/tmp".
+  Portanto, se estivermos na Vercel, criamos o SQLite dentro do /tmp.
+  Atenção: Na Vercel os dados no /tmp são efêmeros (são perdidos periodicamente), 
+  o que serve perfeitamente para testes de integração com a faculdade.
 */
-export const db = new sqlite.Database("./database.sqlite", (err) => {
+const dbPath = process.env.VERCEL 
+  ? path.join("/tmp", "database.sqlite") 
+  : "./database.sqlite";
+
+export const db = new sqlite.Database(dbPath, (err) => {
   if (err) {
     console.error("Erro ao conectar no banco:", err.message);
   } else {
-    console.log("Banco conectado com sucesso.");
+    console.log(`Banco conectado com sucesso em: ${dbPath}`);
   }
 });
 
 /*
   O método serialize garante que os comandos SQL serão executados em ordem.
-  Aqui criamos a tabela "apostadores" apenas se ela ainda não existir.
-  
-  Estrutura da tabela:
-  - id: identificador único do apostador
-  - nome: nome do apostador
-  - idade: idade do apostador
-  - chave_pix: chave Pix do apostador
 */
 db.serialize(() => {
   db.run(`

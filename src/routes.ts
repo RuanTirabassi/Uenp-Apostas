@@ -4,19 +4,22 @@ import { Router, Request, Response } from "express";
 // Importa a conexão com o banco de dados
 import { db } from "./database";
 
+// Importa o middleware de autenticação e os utilitários de criptografia
+import { authMiddleware } from "./middlewares/auth";
+import { encrypt, decrypt } from "./utils/crypto";
+
 // Cria uma instância do roteador do Express
 const router = Router();
+
+// Aplica o middleware de autenticação JWT em TODAS as rotas deste arquivo
+router.use(authMiddleware);
 
 /*
   ROTA: GET /apostadores
   OBJETIVO: Retornar todos os apostadores cadastrados no banco.
-
-  db.all:
-  - Executa uma consulta SQL
-  - Retorna todas as linhas encontradas
 */
 router.get("/apostadores", (req: Request, res: Response) => {
-  db.all("SELECT * FROM apostadores", [], (err, rows) => {
+  db.all("SELECT * FROM apostadores", [], (err, rows: any[]) => {
     if (err) {
       return res.status(500).json({
         erro: "Erro ao buscar apostadores",
@@ -24,22 +27,24 @@ router.get("/apostadores", (req: Request, res: Response) => {
       });
     }
 
-    return res.status(200).json(rows);
+    // Descriptografa a chave pix antes de enviar de volta (opcional, dependendo do design)
+    const apostadores = rows.map(row => ({
+      ...row,
+      chave_pix: decrypt(row.chave_pix)
+    }));
+
+    return res.status(200).json(apostadores);
   });
 });
 
 /*
   ROTA: GET /apostadores/:id
   OBJETIVO: Buscar um único apostador pelo ID.
-
-  db.get:
-  - Executa uma consulta SQL
-  - Retorna apenas um único registro
 */
 router.get("/apostadores/:id", (req: Request, res: Response) => {
   const { id } = req.params;
 
-  db.get("SELECT * FROM apostadores WHERE id = ?", [id], (err, row) => {
+  db.get("SELECT * FROM apostadores WHERE id = ?", [id], (err, row: any) => {
     if (err) {
       return res.status(500).json({
         erro: "Erro ao buscar apostador",
@@ -53,6 +58,9 @@ router.get("/apostadores/:id", (req: Request, res: Response) => {
       });
     }
 
+    // Descriptografa a chave_pix
+    row.chave_pix = decrypt(row.chave_pix);
+
     return res.status(200).json(row);
   });
 });
@@ -60,30 +68,23 @@ router.get("/apostadores/:id", (req: Request, res: Response) => {
 /*
   ROTA: POST /apostadores
   OBJETIVO: Cadastrar um novo apostador.
-
-  Espera receber no body:
-  {
-    "nome": "Carlos",
-    "idade": 28,
-    "chavePix": "carlos@email.com"
-  }
-
-  db.run:
-  - Executa comandos como INSERT, UPDATE e DELETE
 */
 router.post("/apostadores", (req: Request, res: Response) => {
   const { nome, idade, chavePix } = req.body;
 
-  // Validação simples para garantir que os campos obrigatórios foram enviados
+  // Validação simples
   if (!nome || !idade || !chavePix) {
     return res.status(400).json({
       mensagem: "Os campos nome, idade e chavePix são obrigatórios"
     });
   }
 
+  // Criptografa o dado sensível ANTES de salvar no banco de dados
+  const chavePixCriptografada = encrypt(chavePix);
+
   const sql = "INSERT INTO apostadores (nome, idade, chave_pix) VALUES (?, ?, ?)";
 
-  db.run(sql, [nome, idade, chavePix], function (err) {
+  db.run(sql, [nome, idade, chavePixCriptografada], function (err) {
     if (err) {
       return res.status(500).json({
         erro: "Erro ao cadastrar apostador",
@@ -91,15 +92,11 @@ router.post("/apostadores", (req: Request, res: Response) => {
       });
     }
 
-    /*
-      this.lastID:
-      Após o INSERT, o SQLite disponibiliza o ID gerado automaticamente.
-    */
     return res.status(201).json({
       id: this.lastID,
       nome,
       idade,
-      chavePix
+      chavePix // Retornamos o dado original limpo para o cliente na criação
     });
   });
 });
@@ -107,24 +104,19 @@ router.post("/apostadores", (req: Request, res: Response) => {
 /*
   ROTA: PUT /apostadores/:id
   OBJETIVO: Atualizar os dados de um apostador existente.
-
-  Espera receber no body:
-  {
-    "nome": "Novo Nome",
-    "idade": 30,
-    "chavePix": "nova-chave"
-  }
 */
 router.put("/apostadores/:id", (req: Request, res: Response) => {
   const { id } = req.params;
   const { nome, idade, chavePix } = req.body;
 
-  // Validação simples para impedir atualização incompleta
   if (!nome || !idade || !chavePix) {
     return res.status(400).json({
       mensagem: "Os campos nome, idade e chavePix são obrigatórios"
     });
   }
+
+  // Criptografa o dado atualizado
+  const chavePixCriptografada = encrypt(chavePix);
 
   const sql = `
     UPDATE apostadores
@@ -132,7 +124,7 @@ router.put("/apostadores/:id", (req: Request, res: Response) => {
     WHERE id = ?
   `;
 
-  db.run(sql, [nome, idade, chavePix, id], function (err) {
+  db.run(sql, [nome, idade, chavePixCriptografada, id], function (err) {
     if (err) {
       return res.status(500).json({
         erro: "Erro ao atualizar apostador",
@@ -140,11 +132,6 @@ router.put("/apostadores/:id", (req: Request, res: Response) => {
       });
     }
 
-    /*
-      this.changes:
-      Informa quantas linhas foram alteradas.
-      Se for 0, significa que o ID não existe no banco.
-    */
     if (this.changes === 0) {
       return res.status(404).json({
         mensagem: "Apostador não encontrado"
