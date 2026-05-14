@@ -1,5 +1,5 @@
-// Importa os tipos do Express e o recurso Router para organizar as rotas
 import { Router, Request, Response } from "express";
+import jwt from "jsonwebtoken";
 
 // Importa a conexão com o banco de dados (Vercel Postgres)
 import { sql } from "@vercel/postgres";
@@ -11,7 +11,21 @@ import { encrypt, decrypt } from "./utils/crypto";
 // Cria uma instância do roteador do Express
 const router = Router();
 
-// Aplica o middleware de autenticação JWT em TODAS as rotas deste arquivo
+/*
+  ROTA: POST /login
+  OBJETIVO: Gerar um token de acesso para testes e integração.
+*/
+router.post("/login", (req: Request, res: Response) => {
+  const { usuario, senha } = req.body;
+
+  // Como é um projeto de estudo, vamos aceitar qualquer usuário para gerar o token
+  const SECRET = process.env.JWT_SECRET || "fallback_secret";
+  const token = jwt.sign({ id: "usuario_estudo", nome: usuario }, SECRET, { expiresIn: "1d" });
+
+  return res.status(200).json({ auth: true, token });
+});
+
+// Aplica o middleware de autenticação JWT em TODAS as rotas ABAIXO desta linha
 router.use(authMiddleware as any);
 
 /*
